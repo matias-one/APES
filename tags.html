@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hanging Tags Generator</title>
+
+  <!-- Shared Styles -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } }
+      }
+    };
+  </script>
+
+  <!-- Your custom styles for the tag generator go here -->
+  <style>
+    /* You will paste your tag generator CSS here */
+
+ @page {
+      size: letter portrait;
+      margin: 0;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Courier New', Courier, monospace;
+      background-color: #f4f4f4;
+      -webkit-print-color-adjust: exact;
+    }
+
+    /* On-Screen Control Panel */
+    .controls {
+      position: fixed;
+      top: 60px;
+      right: 15px;
+      display: flex;
+      gap: 10px;
+      z-index: 9999;
+      background: #ffffff;
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: bold;
+      font-family: sans-serif;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-front { background-color: #007bff; }
+    .btn-back { background-color: #28a745; }
+    .btn:hover { opacity: 0.9; }
+
+    /* Page Setup */
+    .print-page {
+      width: 8.5in;
+      height: 11in;
+      margin: 20px auto;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 5x3 Grid Layout */
+    .page-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1.7in);
+      grid-template-rows: repeat(3, 3.1in);
+      gap: 0;
+    }
+
+    /* Base Tag Box */
+    .tag {
+      box-sizing: border-box;
+      width: 1.7in;
+      height: 3.1in;
+      position: relative;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    /* Front side HAS light, subtle cut lines */
+    .front-side .page-grid,
+    .front-side .tag {
+      border: 0.5px dashed #e0e0e0;
+    }
+
+    /* Back side HIDES cut lines completely */
+    .back-side .page-grid,
+    .back-side .tag {
+      border: none;
+    }
+
+    /* Hole Punch Guide (Only rendered on front side) */
+    .front-side .hole-punch {
+      position: absolute;
+      top: 0.4in;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0.15in;
+      height: 0.15in;
+      border: 1px solid #aaa;
+      border-radius: 50%;
+      z-index: 2;
+    }
+
+    /* --- FRONT CONTENT STYLES --- */
+    .front-side .rotated-content {
+      position: absolute;
+      top: 58%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(90deg);
+      width: 2.1in;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      font-size: 11px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .desc { margin-top: 4px; margin-bottom: 8px; }
+    .price { margin-bottom: 4px; display: flex; align-items: baseline; }
+    .sku { margin-top: 36px; }
+
+    .line { display: inline-block; border-bottom: 0.5px solid #ccc; }
+  /* Keeps the 2.1in spacing area open, but removes the visible printed underline */
+.desc-line { 
+  width: 2.1in; 
+  border-bottom: 0.5px solid transparent; 
+}
+    .price-line { width: 1in; }
+    .qty-line { width: 0.5in; }
+    .sku-line { width: 2.1in; }
+
+    .dollar-sign, .for-text { font-size: 40px; font-weight: 700; }
+    .for-text { font-weight: 500; margin: 0 2px; }
+
+    /* --- BACK CONTENT STYLES --- */
+    .back-side .rotated-content {
+      position: absolute;
+      top: 58%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(90deg);
+      width: 2.1in;
+      height: 1.2in;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .top-group { display: flex; flex-direction: column; align-items: center; }
+    .brand-line {
+      font-family: 'Sackers Gothic', 'Copperplate', sans-serif;
+      font-size: 14px;
+      font-weight: bold;
+      color: #ff5500;
+      letter-spacing: 2px;
+      margin-top: 2px;
+      margin-bottom: 18px;
+    }
+
+    .line-1 { font-family: 'Impact', 'Arial Black', sans-serif; font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; line-height: 1; color: #000; }
+    .line-2 { font-family: 'Georgia', serif; font-size: 10px; font-style: italic; letter-spacing: 3px; margin-top: 3px; color: #333; }
+    .line-3 { font-family: 'Courier New', monospace; font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #555; }
+
+    /* --- PRINT MODE CONTROLS --- */
+    @media print {
+      body { background: #fff; }
+      .controls { display: none !important; }
+      .print-page { margin: 0; box-shadow: none; }
+
+      /* Hide back page when printing front */
+      body.print-front-mode .back-side { display: none !important; }
+
+      /* Hide front page when printing back */
+      body.print-back-mode .front-side { display: none !important; }
+    }
+
+
+    @media print {
+    .sidebar,
+    .topbar,
+    #footer {
+        display: none !important;
+    }
+
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+
+
+.page-watermark {
+  position: absolute;
+  bottom: 0.3in;
+ /* right: 0.3in;
+    top: 0.3in; */
+  left: 0.3in;
+  width: 0.45in;
+  height: 0.45in;
+  background-image: url('logo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 1;
+}
+
+
+  </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen font-sans">
+<script>
+if (localStorage.getItem("apes_logged_in") !== "yes") {
+    window.location.href = "login.html";
+}
+</script>
+
+<!-- COMPONENTS -->
+<div id="topbar"></div>
+<div id="sidebar"></div>
+
+<div class="main-content">
+
+
+
+  <!-- You will paste your tag generator HTML here -->
+
+
+  <!-- Screen Buttons -->
+  <div class="controls">
+    <button class="btn btn-front" onclick="printSide('front')">Print Front Side</button>
+    <button class="btn btn-back" onclick="printSide('back')">Print Back Side</button>
+  </div>
+
+  <!-- FRONT PAGE LAYOUT -->
+  <div class="print-page front-side">
+    <div class="page-grid" id="front-grid"></div>
+  </div>
+
+  <!-- BACK PAGE LAYOUT -->
+  <div class="print-page back-side">
+    <div class="page-watermark"></div>
+
+    <div class="page-grid" id="back-grid"></div>
+  </div>
+
+  <div id="footer"></div>
+</div>
+  <!-- Your tag generator JS goes here -->
+
+  <script>
+fetch("topbar.html")
+  .then(res => res.text())
+  .then(html => {
+      document.getElementById("topbar").innerHTML = html;
+
+      const username = localStorage.getItem("apes_username");
+      document.getElementById("apes-user").textContent = username;
+      document.getElementById("dd-username").textContent = username;
+      document.getElementById("dd-email").textContent = username + "@apes.com";
+  });
+
+fetch("sidebar.html")
+  .then(res => res.text())
+  .then(html => document.getElementById("sidebar").innerHTML = html);
+
+fetch("footer.html")
+  .then(res => res.text())
+  .then(html => document.getElementById("footer").innerHTML = html);
+</script>
+
+<!-- SHARED LOGIC -->
+<script src="shared.js"></script>
+
+  <script>
+    // Paste your JS here
+
+
+
+        // Front Tag Template (with Hole Punch)
+    const frontTag = `
+      <div class="tag">
+        <div class="hole-punch"></div>
+        <div class="rotated-content">
+          <div class="desc"><span class="line desc-line"></span></div>
+          <div class="price">
+            <span class="dollar-sign">$</span><span class="line price-line"></span>
+            <span class="for-text">/</span>
+            <span class="line qty-line"></span>
+          </div>
+          <div class="sku">#<span class="line sku-line"></span></div>
+        </div>
+      </div>
+    `;
+
+    // Back Tag Template (Clean, no hole punch, no lines)
+const backTag = `
+  <div class="tag">
+    <div class="hole-punch ghost"></div>
+    <div class="rotated-content">
+      <div class="top-group">
+        <div class="brand-line">JamaliGarden.com</div>
+        <div class="line-1">GREAT VALUE</div>
+        <div class="line-2">c o l l e c t i o n</div>
+      </div>
+      <div class="line-3">sold by the case</div>
+    </div>
+  </div>
+`;
+
+
+    // Render 15 tags on each page
+    document.getElementById('front-grid').innerHTML = frontTag.repeat(15);
+    document.getElementById('back-grid').innerHTML = backTag.repeat(15);
+
+    // Print Handler
+    function printSide(side) {
+      document.body.classList.remove('print-front-mode', 'print-back-mode');
+      document.body.classList.add(`print-${side}-mode`);
+      window.print();
+    }
+  </script>
+
+</body>
+</html>
